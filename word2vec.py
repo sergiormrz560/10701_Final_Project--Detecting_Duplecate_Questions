@@ -22,7 +22,7 @@ def readTrainData():
 
 def stripData(data):
     #This removes the first line and first 3 columns
-    return data[1:,3:5]
+    return data[1:,3:5], data[1:,5:]
 
 def flattenData(sentencePairs):
     sentences = sentencePairs.flatten()
@@ -42,21 +42,21 @@ def modelWord2Vec(sentences):
 
 def pcaVisulaization(model):
     #To retrieve all vectors from a trained model:
-	X = model[model.wv.vocab]
+    X = model[model.wv.vocab]
     #Plot word vectors using PCA (uses the scikit-learn PCA Class and matplotlib):
-	pca = PCA(n_components=2)
-	result = pca.fit_transform(X)
-	pyplot.scatter(result[:, 0], result[:, 1])
-    #Annotates graph 
-	words = list(model.wv.vocab)
-	for i, word in enumerate(words):
-		pyplot.annotate(word, xy=(result[i, 0], result[i, 1]))
+    pca = PCA(n_components=2)
+    result = pca.fit_transform(X)
+    pyplot.scatter(result[:, 0], result[:, 1])
+    #Annotates graph
+    words = list(model.wv.vocab)
+    for i, word in enumerate(words):
+        pyplot.annotate(word, xy=(result[i, 0], result[i, 1]))
     pyplot.show()
 
 
 if __name__ == '__main__':
     trainData = readTrainData()
-    sentencePairs = stripData(trainData)
+    sentencePairs, labels = stripData(trainData)
     sentences = flattenData(sentencePairs)
     tokenizedSentences = tokenizeSentences(sentences)
     model = modelWord2Vec(tokenizedSentences)
