@@ -1,24 +1,24 @@
 #Libraries used
-import math
+#import math
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as functional
+#import torch.nn.functional as functional
 import pandas as pd
 import nltk
 from nltk.corpus import stopwords
-from nltk.stem import SnowballStemmer
-import re
-from gensim import utils
-from gensim.models.doc2vec import LabeledSentence
+#from nltk.stem import SnowballStemmer
+#import re
+#from gensim import utils
+#from gensim.models.doc2vec import LabeledSentence
 #from gensim.models import Doc2Vec
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
+#from sklearn.metrics.pairwise import cosine_similarity
+#from sklearn.feature_extraction.text import TfidfVectorizer
 from gensim.models import Word2Vec
-import nltk
 from sklearn.decomposition import PCA
 from matplotlib import pyplot
-from numpy import linalg as LA
+#from numpy import linalg as LA
+from sklearn.model_selection import train_test_split
 
 def pcaVisulaization(model):
     #To retrieve all vectors from a trained model:
@@ -112,7 +112,8 @@ def buildAllZs(vecInputs1, vecInputs2, k):
     return allZs
 
 
-def trainCNN(allZs, labels, clu, k, d, maxEpoch, threshold):
+
+def trainCNN(trainZs, trainLabels, testZs, testLabels, clu, k, d, maxEpoch, threshold):
     #Initialize the network itself, loss function, learning rate, and optimizer
     CNN = NeuralNet()
     criterion = nn.MSELoss()
@@ -136,59 +137,78 @@ def trainCNN(allZs, labels, clu, k, d, maxEpoch, threshold):
     loss = 10
     #while(epochIndex < maxEpoch) and (loss > threshold):
     while(epochIndex < maxEpoch):
-        #Counter for the number of epochs we have trained on
-        for i in range(len(allZs)):
-            output = CNN(torch.from_numpy(allZs[i][0]).float(), torch.from_numpy(allZs[i][1]).float(), clu)
-            #print(output.type())
-            #print(labels[i].type())
-            loss = criterion(output, labels[i])
-            if(i == 1):
-                print(loss)
+        #1 epoch of training
+        for i in range(len(trainZs)):
+            output = CNN(torch.from_numpy(trainZs[i][0]).float(), torch.from_numpy(trainZs[i][1]).float(), clu)
+            loss = criterion(output, trainLabels[i])
             # clear gradients for next train
             optimizer.zero_grad()
             #Compute gradients and update weights
             loss.backward()
             optimizer.step()
-    
 
-            #Do heavy computations on the GPU if avaliable
-            '''if torch.cuda.is_available():
-                batchData = batchData.to(GPU)
-                batchLabels = batchLabels.to(GPU)
-                output = neuralNetwork(batchData)
-                loss = criterion(output, batchLabels)
-                print(loss)
-                # clear gradients for next train
-                optimizer.zero_grad()
-                #Compute gradients and update weights
-                loss.backward()
-                optimizer.step()
-                if(loss > previousLoss):
-                    lossIncreaseCounter = lossIncreaseCounter + 1
-                    if(lossIncreaseCounter > 3):
-                        lr = lr / 2
-                        optimizer = torch.optim.SGD(neuralNetwork.parameters(), lr=learningRate)
-            '''
+        #Calculate outputs on validation set
+        netOutputs = torch.zeros(len(testZs))
+        for i in range(len(testZs)):
+            netOutputs[i] = CNN(torch.from_numpy(testZs[i][0]).float(), torch.from_numpy(testZs[i][1]).float(), clu)
 
-            #No GPU avaliable
-            #else:
-            '''
-            output = neuralNetwork(batchData)
-            loss = criterion(output, batchLabels)
-            print(loss)
-            # clear gradients for next train
-            optimizer.zero_grad()
-            #Compute gradients and update weights
-            loss.backward()
-            optimizer.step()
-            if(loss > previousLoss):
-                lossIncreaseCounter = lossIncreaseCounter + 1
-                if(lossIncreaseCounter > 3):
-                    lr = lr / 2
-                    optimizer = torch.optim.Adam(neuralNetwork.parameters(), lr=learningRate)
-            '''
+        #Calculate our accuracy on the validation set
+        valAccuracy = valCalcAccuracy(netOutputs, testLabels)
+        print(valAccuracy)
         epochIndex = epochIndex + 1
     return CNN
+
+def valCalcAccuracy(netOutputs, labels):
+    correct = 0
+    index = 0
+    while(index < len(labels)):
+        if(labels[index] == 1):
+            if(netOutputs[index] > 0.5):
+                correct = correct + 1
+        #must be 0
+        else:
+            if(netOutputs[index] < 0.5):
+                correct = correct + 1
+        index = index + 1
+    return correct / len(netOutputs)
+
+
+#Do heavy computations on the GPU if avaliable
+'''if torch.cuda.is_available():
+    batchData = batchData.to(GPU)
+    batchLabels = batchLabels.to(GPU)
+    output = neuralNetwork(batchData)
+    loss = criterion(output, batchLabels)
+    print(loss)
+    # clear gradients for next train
+    optimizer.zero_grad()
+    #Compute gradients and update weights
+    loss.backward()
+    optimizer.step()
+    if(loss > previousLoss):
+        lossIncreaseCounter = lossIncreaseCounter + 1
+        if(lossIncreaseCounter > 3):
+            lr = lr / 2
+            optimizer = torch.optim.SGD(neuralNetwork.parameters(), lr=learningRate)
+'''
+
+#No GPU avaliable
+#else:
+'''
+output = neuralNetwork(batchData)
+loss = criterion(output, batchLabels)
+print(loss)
+# clear gradients for next train
+optimizer.zero_grad()
+#Compute gradients and update weights
+loss.backward()
+optimizer.step()
+if(loss > previousLoss):
+    lossIncreaseCounter = lossIncreaseCounter + 1
+    if(lossIncreaseCounter > 3):
+        lr = lr / 2
+        optimizer = torch.optim.Adam(neuralNetwork.parameters(), lr=learningRate)
+'''
 
 
 #-------------------------------Neural Network Layout---------------------------
@@ -226,29 +246,59 @@ class NeuralNet(nn.Module):
 
 
 if __name__ == '__main__':
+    #Read in the dataset
     df = pd.read_csv("dataset/questions.csv", encoding='ISO-8859-1')
-    questions1 = df['question1'][:200]
-    questions2 = df['question2'][:200]
+    #will need to remove this
+    df = df.head(5000)
+
+    #Put dataset into format to calc word embeddings
+    questions1 = df['question1']
+    questions2 = df['question2']
     questionPairs = np.array([questions1, questions2])
     questions = flattenData(questionPairs)
     tokenized_Questions = tokenizeSentences(questions)
 
-    #k must be odd (number of words grouped together, window size), d is the size of word embeddings
-    k, clu, d = 5, 75, 100
+    #calc word embeddings, d is the size of word embeddings
+    d = 100
     vectors = modelWord2Vec(tokenized_Questions, d)
-    padding = vectors["the"]
     #pcaVisulaization(model)
 
+    #split dataset into train and test sets
+    train, test = train_test_split(df, test_size=0.2)
+    #reset the indexes of train and test sets
+    train = train.reset_index()
+    test = test.reset_index()
+
+    #Hyper-parameters
+    k, clu = 5, 75
+    padding = vectors["the"]
+
+    #Put questions from train set into format to calculate z vectors
+    questions1 = train['question1']
+    questions2 = train['question2']
+    questionPairs = np.array([questions1, questions2])
+    questions = flattenData(questionPairs)
+    tokenized_Questions = tokenizeSentences(questions)
     #get the questions into their respective vectors with necessary padding
     vecInputs1, vecInputs2 = getEmbeddings(questions1, questions2, vectors, padding, k)
-    labels = torch.from_numpy(df['is_duplicate'].values).float()
-    #labels.dtype=torch.int64
-    #print(labels)
-    #labels = np.array(list(labels), dtype=np.ndarray)
-    Zs = buildAllZs(vecInputs1, vecInputs2, k)
+    #Get training set labels and Z's
+    trainLabels = torch.from_numpy(train['is_duplicate'].values).float()
+    trainZs = buildAllZs(vecInputs1, vecInputs2, k)
+
+    #Put questions from test set into format to calculate z vectors
+    questions1 = test['question1']
+    questions2 = test['question2']
+    questionPairs = np.array([questions1, questions2])
+    questions = flattenData(questionPairs)
+    tokenized_Questions = tokenizeSentences(questions)
+    #get the questions into their respective vectors with necessary padding
+    vecInputs1, vecInputs2 = getEmbeddings(questions1, questions2, vectors, padding, k)
+    #Get test set labels and Z's
+    testLabels = torch.from_numpy(test['is_duplicate'].values).float()
+    testZs = buildAllZs(vecInputs1, vecInputs2, k)
 
     maxEpoch, threshold = 200, 0.001
-    CNN = trainCNN(Zs, labels, clu, k, d, maxEpoch, threshold)
+    CNN = trainCNN(trainZs, trainLabels, testZs, testLabels, clu, k, d, maxEpoch, threshold)
     #testCNN()
 
     #outputs = buildInputsToCNN(vecInputs1, vecInputs2, labels, d, k, clu, len(questions1))
