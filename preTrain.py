@@ -45,8 +45,8 @@ if __name__ == '__main__':
     df = pd.read_csv("dataset/questions.csv", encoding='ISO-8859-1')
 
     #Remove all 'extra' characters
-    df['question1'] = df['question1'].str.replace('[^a-zA-Z0-9 ]', '')
-    df['question2'] = df['question2'].str.replace('[^a-zA-Z0-9 ]', '')
+    df['question1'] = df['question1'].str.replace('[^a-zA-Z ]', '')
+    df['question2'] = df['question2'].str.replace('[^a-zA-Z ]', '')
     #Make lower case
     df = df.applymap(lambda s: s.lower() if type(s) == str else s)
 
@@ -63,5 +63,4 @@ if __name__ == '__main__':
     #calc word embeddings, d is the size of word embeddings
     d = 200
     vectors = modelWord2Vec(tokenized_Questions, d)
-    #pcaVisulaization(model)
     vectors.save('word2vec.model')
