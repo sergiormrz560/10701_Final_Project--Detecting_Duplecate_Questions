@@ -282,8 +282,10 @@ if __name__ == '__main__':
             invalid_questions.append(i-len(invalid_questions))
     print(invalid_quesions)
     '''
-    df['question1'] = df['question1'].str.replace('[^a-zA-Z0-9 ]', '')
-    df['question2'] = df['question2'].str.replace('[^a-zA-Z0-9 ]', '')
+
+    # Many datapoints with garbage numbers
+    df['question1'] = df['question1'].str.replace('[^a-zA-Z ]', '')
+    df['question2'] = df['question2'].str.replace('[^a-zA-Z ]', '')
     df = df.applymap(lambda s: s.lower() if type(s) == str else s)
 
     #will need to remove this
@@ -297,8 +299,13 @@ if __name__ == '__main__':
     questions = flattenData(questionPairs)
     tokenized_Questions = tokenizeSentences(questions)
     '''
+    
     #calc word embeddings, d is the size of word embeddings
     #Hyper-parameters
+    #
+    # k is window size
+    # clu is final size of sentence (sentence embedding)
+    # d is dimensionality of word embedding
     k, clu, d = 3, 300, 200
     vectors = Word2Vec.load('word2vec.model')
     print(vectors)
@@ -317,9 +324,9 @@ if __name__ == '__main__':
     #Put questions from train set into format to calculate z vectors
     questions1 = train['question1']
     questions2 = train['question2']
-    questionPairs = np.array([questions1, questions2])
-    questions = flattenData(questionPairs)
-    tokenized_Questions = tokenizeSentences(questions)
+    #questionPairs = np.array([questions1, questions2])
+    #questions = flattenData(questionPairs)
+    #tokenized_Questions = tokenizeSentences(questions)
     #get the questions into their respective vectors with necessary padding
     vecInputs1, vecInputs2 = getEmbeddings(questions1, questions2, vectors, padding, k)
     #Get training set labels and Z's
@@ -329,9 +336,9 @@ if __name__ == '__main__':
     #Put questions from test set into format to calculate z vectors
     questions1 = test['question1']
     questions2 = test['question2']
-    questionPairs = np.array([questions1, questions2])
-    questions = flattenData(questionPairs)
-    tokenized_Questions = tokenizeSentences(questions)
+    #questionPairs = np.array([questions1, questions2])
+    #questions = flattenData(questionPairs)
+    #tokenized_Questions = tokenizeSentences(questions)
     #get the questions into their respective vectors with necessary padding
     vecInputs1, vecInputs2 = getEmbeddings(questions1, questions2, vectors, padding, k)
     #Get test set labels and Z's
