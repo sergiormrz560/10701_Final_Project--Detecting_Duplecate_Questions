@@ -25,6 +25,8 @@ def pcaVisulaization(model):
 def tokenizeSentences(sentences):
     tokenizedSentences = []
     for sentence in sentences:
+        if not(type(sentence) == str):
+            sentence = "not sentence"
         tokenized_text = nltk.word_tokenize(sentence)
         tokenizedSentences.append(tokenized_text)
     return tokenizedSentences
@@ -49,9 +51,6 @@ if __name__ == '__main__':
     df['question2'] = df['question2'].str.replace('[^a-zA-Z ]', '')
     #Make lower case
     df = df.applymap(lambda s: s.lower() if type(s) == str else s)
-
-    #will need to remove this
-    df = df.head(50)
 
     #Put dataset into format to calc word embeddings
     questions1 = df['question1']
