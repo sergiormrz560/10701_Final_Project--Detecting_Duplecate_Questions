@@ -43,6 +43,9 @@ def modelWord2Vec(sentences, d):
 
 
 if __name__ == '__main__':
+
+    nltk.download('punkt')
+    
     #Read in the dataset
     df = pd.read_csv("dataset/questions.csv", encoding='ISO-8859-1')
 
