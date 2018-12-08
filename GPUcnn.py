@@ -299,7 +299,7 @@ if __name__ == '__main__':
     questions = flattenData(questionPairs)
     tokenized_Questions = tokenizeSentences(questions)
     '''
-    
+
     #calc word embeddings, d is the size of word embeddings
     #Hyper-parameters
     #
@@ -324,9 +324,11 @@ if __name__ == '__main__':
     #Put questions from train set into format to calculate z vectors
     questions1 = train['question1']
     questions2 = train['question2']
+    
     #questionPairs = np.array([questions1, questions2])
     #questions = flattenData(questionPairs)
     #tokenized_Questions = tokenizeSentences(questions)
+    
     #get the questions into their respective vectors with necessary padding
     vecInputs1, vecInputs2 = getEmbeddings(questions1, questions2, vectors, padding, k)
     #Get training set labels and Z's
